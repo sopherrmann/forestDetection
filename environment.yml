@@ -1,0 +1,7 @@
+name: forestDetection
+dependencies:
+  - python=3.6
+  - gdal
+  - numpy
+  - matplotlib
+  - pandas
