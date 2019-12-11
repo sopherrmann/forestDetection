@@ -1,9 +1,7 @@
 import os
 from typing import List
 
-import numpy as np
 import pandas as pd
-from osgeo import gdal
 
 
 def get_filepath_from_folder(folder: str, file_ext: str) -> List[str]:
@@ -41,12 +39,4 @@ def read_csv(path: str, list_per_col: bool = False):
         data = pd.read_csv(f)
     if list_per_col:
         return {column_name: data[column_name].tolist() for column_name in data.columns}
-
-
-# TODO check if needed
-def get_datasets(filepaths: List[str]) -> List[np.array]:
-    data = []
-    for f in filepaths:
-        ds = gdal.Open(f)
-        data.append(np.array(ds.GetRasterBand(1).ReadAsArray()))
     return data
