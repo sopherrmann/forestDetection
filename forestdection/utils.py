@@ -24,10 +24,7 @@ def get_vv_vh_filepaths(folder: str, file_ext: str = '.tif'):
 
 
 def get_date_from_filename(filename: str) -> int:
-    date_str = filename.split('_')[0]
-    year = date_str[1:5]
-    month = date_str[5:7]
-    return int(f'{year}{month}')
+    return int(filename.split('_')[0][1:7])
 
 
 def write_list_to_csv(data: pd.DataFrame, output_path: str):
