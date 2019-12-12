@@ -33,6 +33,9 @@ class FilepathProvider:
         output_filename = input_filename.replace('.tif', f'_{output_sufix}.tif')
         return os.path.join(self.get_cropped_mm_folder(), output_filename)
 
+    def get_test_folder(self):
+        return self._get_tmp_folder('test')
+
     def get_by_polarisation_from_folder(self, folder, forest_type=None):
         pass
 
@@ -45,3 +48,12 @@ class FilepathProvider:
 
 def get_filename_from_path(filepath):
     return os.path.basename(filepath)
+
+
+def get_filepath(folder_path, filename):
+    return os.path.join(folder_path, filename)
+
+
+def get_date_from_filename(filename: str) -> str:
+    parts = filename.split('_')[0]
+    return f'{parts[1:5]}-{parts[5:7]}'
