@@ -1,5 +1,5 @@
 import csv
-from typing import List
+from typing import List, Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,38 +11,62 @@ from forestdection.filepath import FilepathProvider, get_filepath
 
 class RasterSegmenter:
     # TODO set from config
-    xsize = 100
-    ysize = 100
+    col_size = 100
+    row_size = 100
 
     def __init__(self):
-        self.xoff = 0
-        self.yoff = 0
+        self.col_off = 0
+        self.row_off = 0
 
-    def get_next_cube(self, input_paths: List[str]):
+    def get_next_cube(self, input_paths: List[str]) -> Optional[RasterCube]:
         cube = []
         for path in input_paths:
             ds: gdal.Dataset = gdal.Open(path)
 
-            if self.xoff > ds.RasterXSize:
-                self.xoff = 0
-                self.yoff += self.ysize
-                if self.yoff > ds.RasterYSize:
+            # Check there is some part of the raster left
+            if self.col_off > ds.RasterXSize:
+                self.col_off = 0
+                self.row_off += self.row_size
+                if self.row_off > ds.RasterYSize:
                     break
 
-            c = np.array(ds.GetRasterBand(1) \
-                         .ReadAsArray(xoff=self.xoff, yoff=self.yoff, xsize=self.xsize, ysize=self.ysize))
+            # Ensure bbox is inside raster
+            col_size = self.col_size
+            row_size = self.row_size
+            if self.col_off + self.col_size > ds.RasterXSize:
+                col_size = ds.RasterXSize - self.col_off
+            if self.row_off + self.row_size > ds.RasterYSize:
+                row_size = ds.RasterYSize - self.row_off
+
+            # Get data
+            c = np.array(ds.GetRasterBand(1).ReadAsArray(self.col_off, self.row_off, col_size, row_size))
             cube.append(c)
 
         if not cube:
             return None
-        self.xoff += self.xsize
-        return RasterCube(self.xoff, self.yoff, np.dstack(cube))
 
-    def write_rmsd_from_cubes(self, cubes: List[RasterCube]):
-        self.get_raster_from_cubes(cubes)
+        # Order is important! First assign col_off to raster_cube and then increase it for the next cube
+        raster_cube = RasterCube(self.col_off, self.row_off, np.dstack(cube))
+        self.col_off += self.col_size
+        return raster_cube
 
-    def get_raster_from_cubes(self, cubes: List[RasterCube]):
-        pass
+    def get_rmsd_from_cubes(self, cubes: List[RasterCube]) -> np.array:
+        return self.get_raster_from_cubes(cubes)
+
+    def get_raster_from_cubes(self, cubes: List[RasterCube]) -> np.array:
+        cols, rows = self._get_size_of_all_cubes(cubes)
+        raster = np.empty((rows, cols), dtype=cubes[0].data.dtype)
+        raster[:] = np.nan
+        for c in cubes:
+            col_min, col_max, row_min, row_max = c.get_extend()
+            raster[row_min:row_max, col_min:col_max] = c.data
+        return raster
+
+    def _get_size_of_all_cubes(self, cubes: List[RasterCube]) -> Tuple[int, int]:
+        cubes.sort(key=lambda c: c.col_off and c.row_off)
+        max_cube = cubes[-1]
+        _, col_max, _, row_max = max_cube.get_extend()
+        return col_max, row_max
 
 
 class TifWriter:

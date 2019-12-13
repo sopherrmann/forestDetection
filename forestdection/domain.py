@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from osgeo import gdal, osr
+from osgeo import gdal
 
 
 class Timeseries:
@@ -44,10 +44,15 @@ class Timeseries:
 
 class RasterCube:
 
-    def __init__(self, xoff: int, yoff: int, data: np.array):
-        self.xoff = xoff
-        self.yoff = yoff
+    def __init__(self, col_off: int, row_off: int, data: np.array):
+        self.col_off = col_off
+        self.row_off = row_off
         self.data = data
+
+    def get_extend(self):
+        col_max = self.col_off + self.data.shape[1]
+        row_max = self.row_off + self.data.shape[0]
+        return self.col_off, col_max, self.row_off, row_max
 
 
 class TifInfo:
