@@ -1,11 +1,12 @@
 import subprocess
+from typing import List
 
-from typing import List, Tuple
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, osr
 
-from forestdection.domain import Timeseries
+from forestdection.domain import Timeseries, TifInfo
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
+from forestdection.io import RasterSegmenter
 
 
 class ReferenceUtils:
@@ -35,20 +36,22 @@ class ReferenceUtils:
 class ForestDetection:
     reference_utils = ReferenceUtils()
 
-    def get_reference_timeseries(self, forest_type_shape_tuples: List[Tuple[str, str]], input_paths: List[str])\
-            -> List[Timeseries]:
-        timeseries_list = []
-        for forest_type, shape_path in forest_type_shape_tuples:
-            cropped_mm_paths = self.reference_utils.crop_raster(shape_path, input_paths, forest_type)
-
-            timeseries = self.reference_utils.average(cropped_mm_paths)
-            timeseries.update_name(forest_type)
-            timeseries_list.append(timeseries)
-            # TODO need to add polarisation
-        return timeseries_list
+    # TODO iteration over forest type and polarization should be handled separately
+    def get_reference_timeseries(self, forest_type: str, shape_path: str, input_paths: List[str]) -> Timeseries:
+        cropped_mm_paths = self.reference_utils.crop_raster(shape_path, input_paths, forest_type)
+        timeseries = self.reference_utils.average(cropped_mm_paths)
+        return timeseries
 
     def get_rmsd(self, reference_timeseries: Timeseries, actual_paths: List[str]):
-        pass
+        rmsd = []
+        raster_segmenter = RasterSegmenter()
+        ts_size = reference_timeseries.get_size()
+
+        cube = raster_segmenter.get_next_cube(actual_paths)
+        while cube:
+            cube.data = np.sqrt(np.subtract(cube.data, reference_timeseries.sig0s[None, None, :]))  # per pixel TODO dimensions fit
+            cube.data = np.sqrt(np.multiply(np.sum(cube.data, axis=2), ts_size))  # combining pixel
+            rmsd.append(cube)
 
     def get_pearson_correlation(self, reference, actual):
         pass
