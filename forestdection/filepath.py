@@ -18,6 +18,9 @@ class FilenameProvider:
     def get_rmsd_filename(self, polarization: str, forest_type: str):
         return f'rmsd_{polarization}_{forest_type}.tif'
 
+    def get_pearson_filename(self, polarization: str, forest_type: str):
+        return f'pearson_{polarization}_{forest_type}.tif'
+
 
 class FilepathProvider:
     # TODO make this smarter (e.g.: config path)
@@ -88,7 +91,7 @@ class FilepathProvider:
 
     def get_pearson_file(self, polarization: str, forest_type: str):
         folder = self.get_pearson_folder()
-        name = self.filename_provider.get_timeseries_filename(polarization, forest_type)
+        name = self.filename_provider.get_pearson_filename(polarization, forest_type)
         return get_filepath(folder, name)
 
     def get_by_polarisation_from_folder(self, folder):

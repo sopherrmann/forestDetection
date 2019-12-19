@@ -12,8 +12,8 @@ from forestdection.filepath import FilepathProvider
 class RasterSegmenter:
     # TODO set from config
     # Do not increase if used with current setup! Max!
-    col_size = 2500
-    row_size = 2500
+    col_size = 2000
+    row_size = 2000
 
     def __init__(self):
         self.col_off = 0
@@ -103,7 +103,7 @@ class TifReaderWriter:
         return out_dataset
 
     def read_tif(self, input_path: str):
-        ds = gdal.Dataset(input_path)
+        ds = gdal.Open(input_path)
         return np.array(ds.GetRasterBand(1).ReadAsArray())
 
 

@@ -1,10 +1,10 @@
 import subprocess
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
-from osgeo import gdal, osr
+from osgeo import gdal
 
-from forestdection.domain import Timeseries, RasterCube
+from forestdection.domain import Timeseries
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
 from forestdection.io import RasterSegmenter
 
@@ -45,7 +45,7 @@ class IndicatorCalculation:
         raster_segmenter = RasterSegmenter()
         ts_size = reference_timeseries.get_size()
 
-        print(f'\nTimeseries: {reference_timeseries.name}')
+        print(f'Timeseries: {reference_timeseries.name}')
         counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
         while cube:
@@ -66,28 +66,35 @@ class IndicatorCalculation:
         pearson_cubes = []
         raster_segmenter = RasterSegmenter()
 
-        reference_std, reference_centered = self._get_centered_std_timeseries(reference_timeseries.sig0s)
+        reference_std, reference_centered = self.get_centered_std_timeseries(reference_timeseries.sig0s)
+        print(f'Timeseries: {reference_timeseries.name}')
+        counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
         while cube:
-            cube_std, cube_centered = self._get_centered_std_cube(cube)
-            numerator = np.sum(cube_centered * reference_centered) / (cube.data.shape[2] - 1)
-            denominator = cube_std * reference_std
-            cube.data = numerator / denominator
-
+            print(f'Pearson Segment Counter: {counter}')
+            cube.data = self.get_pearson_by_cube(cube.data, reference_std, reference_centered)
             pearson_cubes.append(cube)
+            counter += 1
             cube = raster_segmenter.get_next_cube(actual_paths)
 
         raster = raster_segmenter.get_pearson_from_cubes(pearson_cubes)
         del pearson_cubes
         return raster
 
-    def _get_centered_std_cube(self, cube: RasterCube):
-        size = cube.data.shape[2]
-        centered = cube.data - np.average(cube.data, axis=2)
+    def get_pearson_by_cube(self, cube_data: np.array, reference_std: float, reference_centered: np.array):
+        cube_std, cube_centered = self.get_centered_std_cube(cube_data)
+        numerator = np.sum(cube_centered * reference_centered, axis=2) / (cube_data.shape[2] - 1)
+        denominator = cube_std * reference_std
+        cube_data = numerator / denominator
+        return cube_data
+
+    def get_centered_std_cube(self, cube_data: np.array):
+        size = cube_data.shape[2]
+        centered = cube_data - np.average(cube_data, axis=2)[:, :, None]
         std = np.sqrt(np.sum(np.square(centered), axis=2) / (size - 1))
         return std, centered
 
-    def _get_centered_std_timeseries(self, data: List[float]):
+    def get_centered_std_timeseries(self, data: List[float]) -> Tuple[float, np.array]:
         data = np.array(data)
         centered = data - np.average(data)
         std = np.sqrt(np.sum(np.square(centered)) / (data.shape[0] - 1))

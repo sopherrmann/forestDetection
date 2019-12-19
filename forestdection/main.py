@@ -57,11 +57,14 @@ class Main:
         for reference_timeseries in all_reference_timeseries:
             polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.name)
             indicator_path = indicator_path_func(polarization, forest_type)
+            print(f'\nCurrent indicator path {indicator_path}')
 
             if not os.path.isfile(indicator_path) or build:
+                print('Calculating tif')
                 indicator = indicator_func(reference_timeseries, all_mm_paths[polarization])
                 self.tif_reader_writer.write_tif(indicator, indicator_path, mm_tif_info)
             else:
+                print('Loading tif')
                 indicator = self.tif_reader_writer.read_tif(indicator_path)
 
             indicator_timeseries.append(indicator)
