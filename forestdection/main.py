@@ -62,7 +62,24 @@ class Main:
         return rmsd_per_timeseries
 
     def get_all_pearson(self, build: bool = False):
-        pass
+        all_reference_timeseries = self.get_all_reference_timeseries()
+        all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
+        mm_tif_info = TifInfo(all_mm_paths['VV'][0])
+
+        pearson_per_timeseries = []
+        for reference_timeseries in all_reference_timeseries:
+            polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.name)
+            pearson_path = self.filepath_provider.get_pearson_file(polarization, forest_type)
+
+            if not os.path.isfile(pearson_path) or build:
+                pearson = self.forest_detection.get_pearson(reference_timeseries, all_mm_paths[polarization])
+                self.tif_writer.write_rmsd_tif(pearson, pearson_path, mm_tif_info)
+            else:
+                # TODO missing TifReader
+                pearson = None
+
+            pearson_per_timeseries.append(pearson)
+        return pearson_per_timeseries
 
 
 if __name__ == '__main__':

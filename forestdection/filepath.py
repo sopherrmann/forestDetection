@@ -68,6 +68,9 @@ class FilepathProvider:
     def get_rmsd_folder(self):
         return self._get_result_folder('rmsd')
 
+    def get_pearson_folder(self):
+        return self._get_result_folder('pearson')
+
     # complete filepaths
     def get_cropped_mm_file(self, input_filename, output_sufix):
         output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
@@ -81,6 +84,11 @@ class FilepathProvider:
     def get_rmsd_file(self, polarization: str, forest_type: str):
         folder = self.get_rmsd_folder()
         name = self.filename_provider.get_rmsd_filename(polarization, forest_type)
+        return get_filepath(folder, name)
+
+    def get_pearson_file(self, polarization: str, forest_type: str):
+        folder = self.get_pearson_folder()
+        name = self.filename_provider.get_timeseries_filename(polarization, forest_type)
         return get_filepath(folder, name)
 
     def get_by_polarisation_from_folder(self, folder):
