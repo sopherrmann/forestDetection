@@ -1,9 +1,9 @@
 import os
 from typing import List
 
-from forestdection.filepath import FilepathProvider, FilenameProvider
+from forestdection.filepath import FilepathProvider, FilenameProvider, get_filepath
 from forestdection.service import ForestDetection
-from forestdection.io import CsvReaderWriter, TifWriter
+from forestdection.io import CsvReaderWriter, TifWriter, Plotter
 from forestdection.domain import Timeseries, TifInfo
 
 
@@ -14,8 +14,9 @@ class Main:
     forest_detection = ForestDetection()
     csv_read_writer = CsvReaderWriter()
     tif_writer = TifWriter()
+    plotter = Plotter()
 
-    def get_all_reference_timeseries(self, build: bool = False) -> List[Timeseries]:
+    def get_all_reference_timeseries(self, build: bool = False, plot: bool = False) -> List[Timeseries]:
         shape_paths = self.filepath_provider.get_input_shape_files_by_forest_type()
         all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
 
@@ -33,6 +34,10 @@ class Main:
                 timeseries.set_name(self.filename_provider.get_timeseries_name(polarization, forest_type))
                 all_timeseries.append(timeseries)
 
+        if plot:
+            plot_path = get_filepath(self.filepath_provider.get_plot_folder(), 'reference_timeseries.png')
+            self.plotter.plot_multiple_timeseries(all_timeseries, save_path=plot_path)
+
         return all_timeseries
 
     def get_all_rmsd(self, build: bool = False):
@@ -48,11 +53,12 @@ class Main:
             if not os.path.isfile(rmsd_path) or build:
                 rmsd = self.forest_detection.get_rmsd(reference_timeseries, all_mm_paths[polarization])
                 self.tif_writer.write_rmsd_tif(rmsd, rmsd_path, mm_tif_info)
+                del rmsd
             else:
                 # TODO missing TifReader
-                rmsd = None
+                pass
 
-            rmsd_per_timeseries.append(rmsd)
+            # rmsd_per_timeseries.append(rmsd)
         return rmsd_per_timeseries
 
     def get_all_pearson(self, build: bool = False):

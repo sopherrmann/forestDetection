@@ -6,13 +6,14 @@ import numpy as np
 from osgeo import gdal
 
 from forestdection.domain import Timeseries, RasterCube, TifInfo
-from forestdection.filepath import FilepathProvider, get_filepath
+from forestdection.filepath import FilepathProvider
 
 
 class RasterSegmenter:
     # TODO set from config
-    col_size = 100
-    row_size = 100
+    # Do not increase if used with current setup! Max!
+    col_size = 2500
+    row_size = 2500
 
     def __init__(self):
         self.col_off = 0
@@ -24,18 +25,18 @@ class RasterSegmenter:
             ds: gdal.Dataset = gdal.Open(path)
 
             # Check there is some part of the raster left
-            if self.col_off > ds.RasterXSize:
+            if self.col_off >= ds.RasterXSize:
                 self.col_off = 0
                 self.row_off += self.row_size
-                if self.row_off > ds.RasterYSize:
+                if self.row_off >= ds.RasterYSize:
                     break
 
             # Ensure bbox is inside raster
             col_size = self.col_size
             row_size = self.row_size
-            if self.col_off + self.col_size > ds.RasterXSize:
+            if self.col_off + self.col_size >= ds.RasterXSize:
                 col_size = ds.RasterXSize - self.col_off
-            if self.row_off + self.row_size > ds.RasterYSize:
+            if self.row_off + self.row_size >= ds.RasterYSize:
                 row_size = ds.RasterYSize - self.row_off
 
             # Get data
@@ -87,7 +88,8 @@ class TifWriter:
     def write_tif(self, data: np.array, output_path: str, tif_info: TifInfo):
         # Create Driver
         driver = gdal.GetDriverByName('GTiff')
-        out_dataset = driver.Create(output_path, tif_info.size_x, tif_info.size_y, 1, gdal.GDT_Byte)
+        # TODO check datatype (origin sig0 mm sixteen bit signed integer > is float 32 enough or do we need float64?)
+        out_dataset = driver.Create(output_path, tif_info.size_x, tif_info.size_y, 1, gdal.GDT_Float32)
         out_dataset.SetGeoTransform((tif_info.origin_x, tif_info.pixel_width, 0, tif_info.origin_y, 0, tif_info.pixel_height))
 
         # set Coordinate system
@@ -103,25 +105,30 @@ class TifWriter:
 
 class Plotter:
 
-    def plot_single_timeseries(self, timeseries: Timeseries):
-        pass
-
-    def plot_multiple_timeseries(self, timeseries: List[Timeseries]):
+    def plot_multiple_timeseries(self, timeseries: List[Timeseries], figsize: Tuple[int, int] = None, save_path: str = None):
+        figsize = figsize if figsize else (10, 10)
         num_ts = len(timeseries)
 
-        plt.figure()
+        x: np.array = None
+        ts: Timeseries = Timeseries()
+        plt.figure(figsize=figsize)
         for idx, ts in enumerate(timeseries):
             ts_size = ts.get_size()
             x = np.arange(ts_size)
 
+            # TODO ylim should same for all plots
             plt.subplot(num_ts, 1, idx + 1)
             plt.ylabel('Mean sig0')
             plt.title(ts.name)
-            plt.xticks(x, ts.dates, rotation=20)
+            plt.xticks([], [])
             plt.plot(x, ts.sig0s)
 
+        plt.xticks(x[::3], ts.dates[::3], rotation=20)
         plt.xlabel('Date')
-        plt.show()
+        if save_path:
+            plt.savefig(save_path)
+        else:
+            plt.show()
 
 
 class CsvReaderWriter:

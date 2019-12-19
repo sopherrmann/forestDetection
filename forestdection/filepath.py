@@ -16,7 +16,7 @@ class FilenameProvider:
         return f'timeseries_{polarization}_{forest_type}.csv'
 
     def get_rmsd_filename(self, polarization: str, forest_type: str):
-        return f'rmsd_{polarization}:{forest_type}.tif'
+        return f'rmsd_{polarization}_{forest_type}.tif'
 
 
 class FilepathProvider:
@@ -30,6 +30,7 @@ class FilepathProvider:
             os.mkdir(path)
         return path
 
+    # main folders
     def _get_input_folder(self, name):
         return self._get_and_make_folder('input', name)
 
@@ -39,18 +40,20 @@ class FilepathProvider:
     def _get_tmp_folder(self, name):
         return self._get_and_make_folder('tmp', name)
 
-    def get_sig0_mm_dir(self):
-        return self._get_input_folder('sig0_monthly_means')
+    # special purpose folders
+    # input
+    def get_sig0_mm_folder(self):
+        return self._get_input_folder('sig0_monthly_mean')
 
     def get_shape_folder(self):
         return self._get_input_folder('reference_shape')
 
+    def get_sentinel_hlr_folder(self):
+        return self._get_input_folder('sentinel_hlr')
+
+    # tmp
     def get_cropped_mm_folder(self):
         return self._get_tmp_folder('cropped_mm')
-
-    def get_cropped_mm_file(self, input_filename, output_sufix):
-        output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
-        return os.path.join(self.get_cropped_mm_folder(), output_filename)
 
     def get_test_folder(self):
         return self._get_tmp_folder('test')
@@ -58,8 +61,17 @@ class FilepathProvider:
     def get_timeseries_folder(self):
         return self._get_tmp_folder('timeseries')
 
+    def get_plot_folder(self):
+        return self._get_tmp_folder('plot')
+
+    # results
     def get_rmsd_folder(self):
         return self._get_result_folder('rmsd')
+
+    # complete filepaths
+    def get_cropped_mm_file(self, input_filename, output_sufix):
+        output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
+        return os.path.join(self.get_cropped_mm_folder(), output_filename)
 
     def get_timeseries_file(self, polarization: str, forest_type: str):
         folder = self.get_timeseries_folder()
@@ -93,7 +105,7 @@ class FilepathProvider:
         return shape_name.split('.')[0]
 
     def get_input_mm_files_by_polarisation(self):
-        orig_mm_folder = self.get_sig0_mm_dir()
+        orig_mm_folder = self.get_sig0_mm_folder()
         return self.get_by_polarisation_from_folder(orig_mm_folder)
 
 

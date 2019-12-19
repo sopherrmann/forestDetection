@@ -12,9 +12,9 @@ from forestdection.io import RasterSegmenter
 class ReferenceUtils:
     filepath_provider = FilepathProvider()
 
-    def crop_raster(self, shape_path: str, raster_paths: List[str], output_sufix: str) -> List[str]:
+    def crop_raster(self, shape_path: str, input_paths: List[str], output_sufix: str) -> List[str]:
         output_paths = []
-        for inraster in raster_paths:
+        for inraster in input_paths:
             input_filename = get_filename_from_path(inraster)
             outraster = self.filepath_provider.get_cropped_mm_file(input_filename, output_sufix)
             output_paths.append(outraster)
@@ -43,15 +43,26 @@ class ForestDetection:
         return timeseries
 
     def get_rmsd(self, reference_timeseries: Timeseries, actual_paths: List[str]):
-        rmsd = []
+        rmsd_cubes = []
         raster_segmenter = RasterSegmenter()
         ts_size = reference_timeseries.get_size()
 
+        print(f'\nTimeseries: {reference_timeseries.name}')
+        counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
         while cube:
-            cube.data = np.sqrt(np.subtract(cube.data, reference_timeseries.sig0s[None, None, :]))  # per pixel TODO dimensions fit
-            cube.data = np.sqrt(np.multiply(np.sum(cube.data, axis=2), ts_size))  # combining pixel
-            rmsd.append(cube)
+            print(f'RMSD Segment Counter: {counter}')
+            timeseries_array = np.array(reference_timeseries.sig0s)
+            cube.data = np.square(cube.data - timeseries_array)  # per pixel
+            cube.data = np.sqrt(np.sum(cube.data, axis=2) / ts_size)  # combining pixel
+
+            rmsd_cubes.append(cube)
+            counter += 1
+            cube = raster_segmenter.get_next_cube(actual_paths)
+
+        raster = raster_segmenter.get_rmsd_from_cubes(rmsd_cubes)
+        del rmsd_cubes
+        return raster
 
     def get_pearson_correlation(self, reference, actual):
         pass
