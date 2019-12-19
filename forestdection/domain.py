@@ -7,7 +7,7 @@ from osgeo import gdal
 class Timeseries:
 
     def __init__(self, dates: List[str] = None, sig0s: List[float] = None, name: str = None):
-        self.name = name if name is not None else ''
+        self.name = name if name is not None else ''  # TODO split into polarization and forest_type?
         self.dates = dates if dates is not None else []
         self.sig0s = sig0s if sig0s is not None else []
 
@@ -20,7 +20,7 @@ class Timeseries:
         self.dates += dates
         self.sig0s += sig0s
 
-    def update_name(self, name: str):
+    def set_name(self, name: str):
         self.name = name
 
     def get_zip(self):

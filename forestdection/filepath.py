@@ -1,9 +1,28 @@
 import os
 
 
+class FilenameProvider:
+
+    def get_timeseries_name(self, polarization: str, forest_type: str):
+        return f'{polarization}_{forest_type}'
+
+    def get_info_from_name(self, name: str):
+        return name.split('_')
+
+    def append_sufix_to_tif(self, input_filename: str, output_sufix: str):
+        return input_filename.replace('.tif', f'_{output_sufix}.tif')
+
+    def get_timeseries_filename(self, polarization: str, forest_type: str):
+        return f'timeseries_{polarization}_{forest_type}.csv'
+
+    def get_rmsd_filename(self, polarization: str, forest_type: str):
+        return f'rmsd_{polarization}:{forest_type}.tif'
+
+
 class FilepathProvider:
     # TODO make this smarter (e.g.: config path)
-    base_folder = '/path/to/base_dir'
+    filename_provider = FilenameProvider()
+    base_folder = '/home/sophie/Documents/data/forest_detection'
 
     def _get_and_make_folder(self, main, sub):
         path = os.path.join(self.base_folder, main, sub)
@@ -30,20 +49,61 @@ class FilepathProvider:
         return self._get_tmp_folder('cropped_mm')
 
     def get_cropped_mm_file(self, input_filename, output_sufix):
-        output_filename = input_filename.replace('.tif', f'_{output_sufix}.tif')
+        output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
         return os.path.join(self.get_cropped_mm_folder(), output_filename)
 
     def get_test_folder(self):
         return self._get_tmp_folder('test')
 
-    def get_by_polarisation_from_folder(self, folder, forest_type=None):
-        pass
+    def get_timeseries_folder(self):
+        return self._get_tmp_folder('timeseries')
 
-    def get_reference_folder(self, reference_type):
-        pass
+    def get_rmsd_folder(self):
+        return self._get_result_folder('rmsd')
 
-    def get_result_folder(self, result_type):
-        pass
+    def get_timeseries_file(self, polarization: str, forest_type: str):
+        folder = self.get_timeseries_folder()
+        name = self.filename_provider.get_timeseries_filename(polarization, forest_type)
+        return get_filepath(folder, name)
+
+    def get_rmsd_file(self, polarization: str, forest_type: str):
+        folder = self.get_rmsd_folder()
+        name = self.filename_provider.get_rmsd_filename(polarization, forest_type)
+        return get_filepath(folder, name)
+
+    def get_by_polarisation_from_folder(self, folder):
+        all_files = get_files_from_folder(folder)
+        vv = []
+        vh = []
+        for f in all_files:
+            part = os.path.basename(f).split('_')[3]
+            if part.endswith('VV-'):
+                vv.append(f)
+            elif part.split('VH-'):
+                vh.append(f)
+        return {'VV': vv, 'VH': vh}
+
+    def get_input_shape_files_by_forest_type(self):
+        shape_folder = self.get_shape_folder()
+        all_files = get_files_from_folder(shape_folder, '.shp')
+        return {self.get_forest_type_from_shape_file(path): path for path in all_files}
+
+    def get_forest_type_from_shape_file(self, shape_path: str):
+        shape_name = os.path.basename(shape_path)
+        return shape_name.split('.')[0]
+
+    def get_input_mm_files_by_polarisation(self):
+        orig_mm_folder = self.get_sig0_mm_dir()
+        return self.get_by_polarisation_from_folder(orig_mm_folder)
+
+
+def get_files_from_folder(folder: str, ext: str = None):
+    files = []
+    for f in os.listdir(folder):
+        file_path = os.path.join(folder, f)
+        if os.path.isfile(file_path) and (not ext or file_path.endswith(ext)):
+            files.append(file_path)
+    return files
 
 
 def get_filename_from_path(filepath):

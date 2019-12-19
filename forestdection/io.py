@@ -50,9 +50,6 @@ class RasterSegmenter:
         self.col_off += self.col_size
         return raster_cube
 
-    def get_rmsd_from_cubes(self, cubes: List[RasterCube]) -> np.array:
-        return self.get_raster_from_cubes(cubes)
-
     def get_raster_from_cubes(self, cubes: List[RasterCube]) -> np.array:
         cols, rows = self._get_size_of_all_cubes(cubes)
         raster = np.empty((rows, cols), dtype=cubes[0].data.dtype)
@@ -68,22 +65,23 @@ class RasterSegmenter:
         _, col_max, _, row_max = max_cube.get_extend()
         return col_max, row_max
 
+    def get_rmsd_from_cubes(self, cubes: List[RasterCube]) -> np.array:
+        return self.get_raster_from_cubes(cubes)
+
+    def get_pearson_from_cubes(self, cubes: List[RasterCube]) -> np.array:
+        return self.get_raster_from_cubes(cubes)
+
 
 class TifWriter:
 
     filepath_provider = FilepathProvider()
 
-    # TODO maybe output path should be given directly
-    def write_rmsd_tif(self, rmsd: np.array, output_file: str, source: TifInfo):
-        output_folder = self.filepath_provider.get_result_folder('rmsd')
-        output_path = get_filepath(output_folder, output_file)
+    # TODO read tif (to reuse already calculated rmsd / pearson)
 
+    def write_rmsd_tif(self, rmsd: np.array, output_path: str, source: TifInfo):
         return self.write_tif(rmsd, output_path, source)
 
-    def write_pearson_tif(self, pearson: np.array, output_file: str, source: TifInfo):
-        output_folder = self.filepath_provider.get_result_folder('pearson')
-        output_path = get_filepath(output_folder, output_file)
-
+    def write_pearson_tif(self, pearson: np.array, output_path: str, source: TifInfo):
         self.write_tif(pearson, output_path, source)
 
     def write_tif(self, data: np.array, output_path: str, tif_info: TifInfo):

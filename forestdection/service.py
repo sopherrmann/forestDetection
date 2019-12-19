@@ -36,7 +36,7 @@ class ReferenceUtils:
 class ForestDetection:
     reference_utils = ReferenceUtils()
 
-    # TODO iteration over forest type and polarization should be handled separately
+    # iteration over forest type and polarization should be handled separately
     def get_reference_timeseries(self, forest_type: str, shape_path: str, input_paths: List[str]) -> Timeseries:
         cropped_mm_paths = self.reference_utils.crop_raster(shape_path, input_paths, forest_type)
         timeseries = self.reference_utils.average(cropped_mm_paths)
