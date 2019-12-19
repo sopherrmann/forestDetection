@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from osgeo import gdal, osr
 
-from forestdection.domain import Timeseries, TifInfo
+from forestdection.domain import Timeseries, RasterCube
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
 from forestdection.io import RasterSegmenter
 
@@ -53,8 +53,38 @@ class ForestDetection:
             cube.data = np.sqrt(np.multiply(np.sum(cube.data, axis=2), ts_size))  # combining pixel
             rmsd.append(cube)
 
-    def get_pearson_correlation(self, reference, actual):
-        pass
+        return raster_segmenter.get_rmsd_from_cubes(rmsd)
+
+    def get_pearson(self, reference_timeseries: Timeseries, actual_paths: List[str]):
+        pearson_cubes = []
+        raster_segmenter = RasterSegmenter()
+
+        reference_std, reference_centered = self._get_centered_std_timeseries(reference_timeseries.sig0s)
+        cube = raster_segmenter.get_next_cube(actual_paths)
+        while cube:
+            cube_std, cube_centered = self._get_centered_std_cube(cube)
+            numerator = np.sum(cube_centered * reference_centered) / (cube.data.shape[2] - 1)
+            denominator = cube_std * reference_std
+            cube.data = numerator / denominator
+
+            pearson_cubes.append(cube)
+            cube = raster_segmenter.get_next_cube(actual_paths)
+
+        raster = raster_segmenter.get_pearson_from_cubes(pearson_cubes)
+        del pearson_cubes
+        return raster
+
+    def _get_centered_std_cube(self, cube: RasterCube):
+        size = cube.data.shape[2]
+        centered = cube.data - np.average(cube.data, axis=2)
+        std = np.sqrt(np.sum(np.square(centered), axis=2) / (size - 1))
+        return std, centered
+
+    def _get_centered_std_timeseries(self, data: List[float]):
+        data = np.array(data)
+        centered = data - np.average(data)
+        std = np.sqrt(np.sum(np.square(centered)) / (data.shape[0] - 1))
+        return std, centered
 
 
 class TimeseriesBuilder:
