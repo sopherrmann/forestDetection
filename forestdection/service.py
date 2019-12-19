@@ -32,15 +32,13 @@ class ReferenceUtils:
             timeseries.push(date_str, avg)
         return timeseries
 
-
-class ForestDetection:
-    reference_utils = ReferenceUtils()
-
-    # iteration over forest type and polarization should be handled separately
     def get_reference_timeseries(self, forest_type: str, shape_path: str, input_paths: List[str]) -> Timeseries:
-        cropped_mm_paths = self.reference_utils.crop_raster(shape_path, input_paths, forest_type)
-        timeseries = self.reference_utils.average(cropped_mm_paths)
+        cropped_mm_paths = self.crop_raster(shape_path, input_paths, forest_type)
+        timeseries = self.average(cropped_mm_paths)
         return timeseries
+
+
+class IndicatorCalculation:
 
     def get_rmsd(self, reference_timeseries: Timeseries, actual_paths: List[str]):
         rmsd_cubes = []
@@ -63,8 +61,6 @@ class ForestDetection:
         raster = raster_segmenter.get_rmsd_from_cubes(rmsd_cubes)
         del rmsd_cubes
         return raster
-
-        return raster_segmenter.get_rmsd_from_cubes(rmsd)
 
     def get_pearson(self, reference_timeseries: Timeseries, actual_paths: List[str]):
         pearson_cubes = []
@@ -98,7 +94,7 @@ class ForestDetection:
         return std, centered
 
 
-class TimeseriesBuilder:
+class ForestClassification:
 
-    def build_timeseries(self, input_paths):
+    def classify_forest(self, rmsd: np.array, pearson: np.array):
         pass

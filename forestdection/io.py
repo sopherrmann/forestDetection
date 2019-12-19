@@ -73,7 +73,7 @@ class RasterSegmenter:
         return self.get_raster_from_cubes(cubes)
 
 
-class TifWriter:
+class TifReaderWriter:
 
     filepath_provider = FilepathProvider()
 
@@ -101,6 +101,10 @@ class TifWriter:
         outband.FlushCache()
 
         return out_dataset
+
+    def read_tif(self, input_path: str):
+        ds = gdal.Dataset(input_path)
+        return np.array(ds.GetRasterBand(1).ReadAsArray())
 
 
 class Plotter:

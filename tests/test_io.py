@@ -3,7 +3,7 @@ from osgeo import gdal
 
 from forestdection.domain import Timeseries, TifInfo, RasterCube
 from forestdection.filepath import FilepathProvider, get_filepath
-from forestdection.io import CsvReaderWriter, TifWriter, RasterSegmenter
+from forestdection.io import CsvReaderWriter, TifReaderWriter, RasterSegmenter
 
 filepath_provider = FilepathProvider()
 test_folder = filepath_provider.get_test_folder()
@@ -60,6 +60,6 @@ def test_tif_writer():
     input_data = np.array(input_dataset.GetRasterBand(1).ReadAsArray())
     input_tif_info = TifInfo(input_path)
 
-    TifWriter().write_tif(data=input_data, output_path=output_path, tif_info=input_tif_info)
+    TifReaderWriter().write_tif(data=input_data, output_path=output_path, tif_info=input_tif_info)
     output_tif_info = TifInfo(output_path)
     assert input_tif_info == output_tif_info
