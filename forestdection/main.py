@@ -81,7 +81,7 @@ class Main:
 
         indicator_timeseries = []
         for reference_timeseries in all_reference_timeseries:
-            polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.name)
+            polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.get_description())
             rmsd_path = self.filepath_provider.get_rmsd_file(polarization, forest_type)
             pearson_path = self.filepath_provider.get_pearson_file(polarization, forest_type)
             #print(f'\nrmsd_path: {rmsd_path}\npearson_path: {pearson_path}')
@@ -105,6 +105,11 @@ class Main:
 
 
 
+    def classify_raster(self):
+        rmsd = self.get_all_rmsd()
+        pearson = self.get_all_pearson()
+
+        forest_class_raster = self.forest_classification.classify_forest(rmsd, pearson)
 
 
 if __name__ == '__main__':

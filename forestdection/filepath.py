@@ -104,7 +104,7 @@ class FilepathProvider:
         return get_filepath(folder, name)
 
     def get_classified_file(self, polarization: str, forest_type: str):
-        folder = self.get_classified_file()
+        folder = self.get_classified_folder()
         name = self.filename_provider.get_classified_filename(polarization, forest_type)
         return get_filepath(folder, name)
 

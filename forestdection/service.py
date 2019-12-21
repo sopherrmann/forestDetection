@@ -103,10 +103,31 @@ class IndicatorCalculation:
 
 
 class ForestClassification:
-    # TODO: sigma0 values are in decibel * 100!? why?
-    def classify_forest(self, rmsd_path: str, pearson_path: str):
-        ds_rmsd = gdal.Open(rmsd_path)
-        ds_pearson = gdal.Open(pearson_path)
-        rmsd_array = np.array(ds_rmsd.GetRasterBand(1).ReadAsArray())
-        pearson_array = np.array(ds_pearson.GetRasterBand(1).ReadAsArray())
-        return (rmsd_array < 2000) & (pearson_array > 0.4)
+
+    def classify_forest(self, rmsd: Indicators, pearson: Indicators):
+        # rmsd / pearson are 3D numpy arrays first two dim geographic extend, third are different forest types
+        rmsd_vh = rmsd.get_data_by_description(polarization='VH')
+        rmsd_vv = rmsd.get_data_by_description(polarization='VV')
+        pearson_vh = pearson.get_data_by_description(polarization='VH')
+        forest_mask = self._get_forest_mask(rmsd_vh, rmsd_vv, pearson_vh)
+
+        # forest classification based on highest RMSD VH value
+        # get index of highest RMSD VH value (0 / 1... first / second forest type)
+        forest_type_index_raster = np.argmax(rmsd_vh, axis=2)
+        forest_type_index_raster += 1  # now all indexes are above 0
+
+        # 0 ... no forest
+        # 1 ... first forest type
+        # 2 ... second forest type
+        return forest_type_index_raster * forest_mask
+
+    def _get_forest_mask(self, rmsd_vh: np.array, rmsd_vv: np.array, pearson_vh: np.array) -> np.array:
+        # RMSD VH < 1.5 dB and RMSD VV < 2.0 dB and Pearson VH > 0.4 -> 1 otherwise 0
+        # TODO is a simple comparision enough? RMSD compared to decibel
+        mask_rmsd_vh = np.any((rmsd_vh < 1.5), axis=2)
+        mask_rmsd_vv = np.any(rmsd_vv < 2.0, axis=2)
+        mask_pearson_vh = np.any(pearson_vh > 0.4, axis=2)
+        return (mask_rmsd_vh * mask_rmsd_vv * mask_pearson_vh).astype(int)
+
+    def _linear_to_decibel(self, value):
+        return 10 * np.log10(value)
