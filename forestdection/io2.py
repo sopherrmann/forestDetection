@@ -77,8 +77,6 @@ class TifReaderWriter:
 
     filepath_provider = FilepathProvider()
 
-    # TODO read tif (to reuse already calculated rmsd / pearson)
-
     def write_rmsd_tif(self, rmsd: np.array, output_path: str, source: TifInfo):
         return self.write_tif(rmsd, output_path, source)
 
@@ -120,10 +118,10 @@ class Plotter:
             ts_size = ts.get_size()
             x = np.arange(ts_size)
 
-            # TODO ylim should same for all plots
+            # TODO ylim should be same for all plots
             plt.subplot(num_ts, 1, idx + 1)
             plt.ylabel('Mean sig0')
-            plt.title(ts.name)
+            plt.title(ts.get_description())
             plt.xticks([], [])
             plt.plot(x, ts.sig0s)
 

@@ -12,14 +12,17 @@ class FilenameProvider:
     def append_sufix_to_tif(self, input_filename: str, output_sufix: str):
         return input_filename.replace('.tif', f'_{output_sufix}.tif')
 
+    def get_filename(self, type_: str, polarization: str, forest_type: str, extension: str):
+        return f'{type_}_{polarization}_{forest_type}.{extension}'
+
     def get_timeseries_filename(self, polarization: str, forest_type: str):
-        return f'timeseries_{polarization}_{forest_type}.csv'
+        return self.get_filename('timeseries', polarization, forest_type, 'csv')
 
     def get_rmsd_filename(self, polarization: str, forest_type: str):
-        return f'rmsd_{polarization}_{forest_type}.tif'
+        return self.get_filename('rmsd', polarization, forest_type, 'tif')
 
     def get_pearson_filename(self, polarization: str, forest_type: str):
-        return f'pearson_{polarization}_{forest_type}.tif'
+        return self.get_filename('pearson', polarization, forest_type, 'tif')
 
     def get_classified_filename(self, polarization: str, forest_type: str):
         return f'classified_{polarization}_{forest_type}.tif'

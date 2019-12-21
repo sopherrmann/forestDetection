@@ -1,11 +1,10 @@
 import os
 from typing import List
-import numpy as np
 
 from forestdection.filepath import FilepathProvider, FilenameProvider, get_filepath
 from forestdection.service import IndicatorCalculation, ReferenceUtils, ForestClassification
 from forestdection.io2 import CsvReaderWriter, TifReaderWriter, Plotter
-from forestdection.domain import Timeseries, TifInfo
+from forestdection.domain import Timeseries, TifInfo, Indicators
 
 
 class Main:
@@ -34,7 +33,7 @@ class Main:
                 else:
                     timeseries = self.csv_read_writer.read_timeseries(timeseries_path)
 
-                timeseries.set_name(self.filename_provider.get_timeseries_name(polarization, forest_type))
+                timeseries.set_description(self.filename_provider.get_timeseries_name(polarization, forest_type))
                 all_timeseries.append(timeseries)
 
         if plot:
@@ -43,24 +42,23 @@ class Main:
 
         return all_timeseries
 
-    def get_all_rmsd(self, build: bool = False) -> List[np.array]:
-        return self._get_indicator_for_all(self.filepath_provider.get_rmsd_file, self.indicator_calculation.get_rmsd, build)
+    def get_all_rmsd(self, build: bool = False) -> Indicators:
+        return self._get_indicator_for_all('rmsd', self.filepath_provider.get_rmsd_file, self.indicator_calculation.get_rmsd, build)
 
-    def get_all_pearson(self, build: bool = False) -> List[np.array]:
-        return self._get_indicator_for_all(self.filepath_provider.get_pearson_file, self.indicator_calculation.get_pearson, build)
+    def get_all_pearson(self, build: bool = False) -> Indicators:
+        return self._get_indicator_for_all('pearson', self.filepath_provider.get_pearson_file, self.indicator_calculation.get_pearson, build)
 
     def get_classified(self, build: bool = False) -> List[np.array]:
         return self._get_classified_for_all(self.filepath_provider.get_classified_folder(), build)
 
-
-    def _get_indicator_for_all(self, indicator_path_func, indicator_func, build: bool = False) -> List[np.array]:
+    def _get_indicator_for_all(self, indicator_type: str, indicator_path_func, indicator_func, build: bool = False) -> Indicators:
         all_reference_timeseries = self.get_all_reference_timeseries()
         all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
         mm_tif_info = TifInfo(all_mm_paths['VV'][0])
 
-        indicator_timeseries = []
+        indicators = Indicators()
         for reference_timeseries in all_reference_timeseries:
-            polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.name)
+            polarization, forest_type = reference_timeseries.polarization, reference_timeseries.forest_type
             indicator_path = indicator_path_func(polarization, forest_type)
             print(f'\nCurrent indicator path {indicator_path}')
 
@@ -73,8 +71,8 @@ class Main:
                 print('Loading tif')
                 indicator = self.tif_reader_writer.read_tif(indicator_path)
 
-            indicator_timeseries.append(indicator)
-        return indicator_timeseries
+            indicators.push(forest_type, polarization, indicator_type, indicator)
+        return indicators
 
     def _get_classified_for_all(self, classified_path, build: bool = False):
         all_reference_timeseries = self.get_all_reference_timeseries()

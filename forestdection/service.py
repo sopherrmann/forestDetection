@@ -4,7 +4,7 @@ from typing import List, Tuple
 import numpy as np
 from osgeo import gdal
 
-from forestdection.domain import Timeseries
+from forestdection.domain import Timeseries, Indicators
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
 from forestdection.io2 import RasterSegmenter
 
@@ -40,12 +40,12 @@ class ReferenceUtils:
 
 class IndicatorCalculation:
 
-    def get_rmsd(self, reference_timeseries: Timeseries, actual_paths: List[str]):
+    def get_rmsd(self, reference_timeseries: Timeseries, actual_paths: List[str]) -> np.array:
         rmsd_cubes = []
         raster_segmenter = RasterSegmenter()
         ts_size = reference_timeseries.get_size()
 
-        print(f'Timeseries: {reference_timeseries.name}')
+        print(f'Timeseries: {reference_timeseries.get_description()}')
         counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
         while cube:
@@ -63,12 +63,12 @@ class IndicatorCalculation:
         del rmsd_cubes
         return raster
 
-    def get_pearson(self, reference_timeseries: Timeseries, actual_paths: List[str]):
+    def get_pearson(self, reference_timeseries: Timeseries, actual_paths: List[str]) -> np.array:
         pearson_cubes = []
         raster_segmenter = RasterSegmenter()
 
         reference_std, reference_centered = self.get_centered_std_timeseries(reference_timeseries.sig0s)
-        print(f'Timeseries: {reference_timeseries.name}')
+        print(f'Timeseries: {reference_timeseries.get_description()}')
         counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
         while cube:

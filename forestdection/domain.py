@@ -6,22 +6,26 @@ from osgeo import gdal
 
 class Timeseries:
 
-    def __init__(self, dates: List[str] = None, sig0s: List[float] = None, name: str = None):
-        self.name = name if name is not None else ''  # TODO split into polarization and forest_type?
+    def __init__(self, dates: List[str] = None, sig0s: List[float] = None, forest_type: str = None, polarization: str = None):
+        self.forest_type = forest_type
+        self.polarization = polarization
         self.dates = dates if dates is not None else []
         self.sig0s = sig0s if sig0s is not None else []
 
     def push(self, date, sig0):
         self.dates.append(date)
-        # TODO check if we ints are wanted?
-        self.sig0s.append(int(sig0))
+        self.sig0s.append(int(sig0))  # Sig0 are stored as signed sixteen bit integers
 
-    def push_all(self, dates, sig0s):
+    def push_all(self, dates: List[str], sig0s: List[int]):
         self.dates += dates
         self.sig0s += sig0s
 
-    def set_name(self, name: str):
-        self.name = name
+    def set_description(self, forest_type: str = None, polarization: str = None):
+        self.forest_type = forest_type
+        self.polarization = polarization
+
+    def get_description(self):
+        return f'{self.polarization}_{self.forest_type}'
 
     def get_zip(self):
         return zip(self.dates, self.sig0s)
@@ -76,3 +80,44 @@ class TifInfo:
                and self.pixel_width == other.pixel_width and self.pixel_height == other.pixel_height \
                and self.wkt_projection == other.wkt_projection \
                and self.size_x == other.size_x and self.size_y == other.size_y
+
+
+class Indicators:
+
+    def __init__(self):
+        self.forest_types = []
+        self.polarizations = []
+        self.types = []
+        self.data = []
+
+    def push(self, forest_type: str, polarization: str, type_: str, data: np.array):
+        self.forest_types.append(forest_type)
+        self.polarizations.append(polarization)
+        self.types.append(type_)
+        self.data.append(data)
+
+    def push_all(self, forest_types: List[str], polarizations: List[str], types_: List[str], data: List[np.array]):
+        self.forest_types += forest_types
+        self.polarizations += polarizations
+        self.types += types_
+        self.data += data
+
+    def get_data_by_description(self, forest_type: str = None, polarization: str = None, type_: str = None):
+        indices = self.get_part_indices(forest_type, polarization, type_)
+        data = [d for i, d in enumerate(self.data) if i in indices]
+        return np.dstack(data)
+
+    def get_part_indices(self, forest_type: str = None, polarization: str = None, type_: str = None):
+        indices = set(range(0, len(self.forest_types)))
+
+        if forest_type:
+            indices = self._get_indices_set(self.forest_types, forest_type) & indices
+        if polarization:
+            indices = self._get_indices_set(self.polarizations, polarization) & indices
+        if type_:
+            indices = self._get_indices_set(self.types, type_)
+
+        return indices
+
+    def _get_indices_set(self, to_check: list, value) -> set:
+        return {i for i, j in enumerate(to_check) if j == value}
