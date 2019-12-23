@@ -21,11 +21,14 @@ class FilenameProvider:
     def get_pearson_filename(self, polarization: str, forest_type: str):
         return f'pearson_{polarization}_{forest_type}.tif'
 
+    def get_classified_filename(self, polarization: str, forest_type: str):
+        return f'classified_{polarization}_{forest_type}.tif'
+
 
 class FilepathProvider:
     # TODO make this smarter (e.g.: config path)
     filename_provider = FilenameProvider()
-    base_folder = '/home/sophie/Documents/data/forest_detection'
+    base_folder = '/shares/mfue1/teaching/stu_scratch/Microwave_Remote_Sensing/Group1/data'
 
     def _get_and_make_folder(self, main, sub):
         path = os.path.join(self.base_folder, main, sub)
@@ -74,6 +77,9 @@ class FilepathProvider:
     def get_pearson_folder(self):
         return self._get_result_folder('pearson')
 
+    def get_classified_folder(self):
+        return self._get_result_folder('classified')
+
     # complete filepaths
     def get_cropped_mm_file(self, input_filename, output_sufix):
         output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
@@ -92,6 +98,11 @@ class FilepathProvider:
     def get_pearson_file(self, polarization: str, forest_type: str):
         folder = self.get_pearson_folder()
         name = self.filename_provider.get_pearson_filename(polarization, forest_type)
+        return get_filepath(folder, name)
+
+    def get_classified_file(self, polarization: str, forest_type: str):
+        folder = self.get_classified_file()
+        name = self.filename_provider.get_classified_filename(polarization, forest_type)
         return get_filepath(folder, name)
 
     def get_by_polarisation_from_folder(self, folder):

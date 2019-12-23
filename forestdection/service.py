@@ -6,7 +6,7 @@ from osgeo import gdal
 
 from forestdection.domain import Timeseries
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
-from forestdection.io import RasterSegmenter
+from forestdection.io2 import RasterSegmenter
 
 
 class ReferenceUtils:
@@ -51,7 +51,8 @@ class IndicatorCalculation:
         while cube:
             print(f'RMSD Segment Counter: {counter}')
             timeseries_array = np.array(reference_timeseries.sig0s)
-            cube.data = np.square(cube.data - timeseries_array)  # per pixel
+            cube.data = np.square(cube.data - timeseries_array[None, None, :]) # per pixel
+
             cube.data = np.sqrt(np.sum(cube.data, axis=2) / ts_size)  # combining pixel
 
             rmsd_cubes.append(cube)
@@ -102,6 +103,10 @@ class IndicatorCalculation:
 
 
 class ForestClassification:
-
-    def classify_forest(self, rmsd: np.array, pearson: np.array):
-        pass
+    # TODO: sigma0 values are in decibel * 100!? why?
+    def classify_forest(self, rmsd_path: str, pearson_path: str):
+        ds_rmsd = gdal.Open(rmsd_path)
+        ds_pearson = gdal.Open(pearson_path)
+        rmsd_array = np.array(ds_rmsd.GetRasterBand(1).ReadAsArray())
+        pearson_array = np.array(ds_pearson.GetRasterBand(1).ReadAsArray())
+        return (rmsd_array < 2000) & (pearson_array > 0.4)
