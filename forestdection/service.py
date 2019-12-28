@@ -123,11 +123,8 @@ class ForestClassification:
 
     def _get_forest_mask(self, rmsd_vh: np.array, rmsd_vv: np.array, pearson_vh: np.array) -> np.array:
         # RMSD VH < 1.5 dB and RMSD VV < 2.0 dB and Pearson VH > 0.4 -> 1 otherwise 0
-        # TODO is a simple comparision enough? RMSD compared to decibel
-        mask_rmsd_vh = np.any((rmsd_vh < 1.5), axis=2)
-        mask_rmsd_vv = np.any(rmsd_vv < 2.0, axis=2)
+        # TODO Why is multiplication with 1000 needed?
+        mask_rmsd_vh = np.any((rmsd_vh < 1500), axis=2)
+        mask_rmsd_vv = np.any(rmsd_vv < 2000, axis=2)
         mask_pearson_vh = np.any(pearson_vh > 0.4, axis=2)
         return (mask_rmsd_vh * mask_rmsd_vv * mask_pearson_vh).astype(int)
-
-    def _linear_to_decibel(self, value):
-        return 10 * np.log10(value)

@@ -24,9 +24,6 @@ class FilenameProvider:
     def get_pearson_filename(self, polarization: str, forest_type: str):
         return self.get_filename('pearson', polarization, forest_type, 'tif')
 
-    def get_classified_filename(self, polarization: str, forest_type: str):
-        return f'classified_{polarization}_{forest_type}.tif'
-
 
 class FilepathProvider:
     # TODO make this smarter (e.g.: config path)
@@ -103,9 +100,9 @@ class FilepathProvider:
         name = self.filename_provider.get_pearson_filename(polarization, forest_type)
         return get_filepath(folder, name)
 
-    def get_classified_file(self, polarization: str, forest_type: str):
+    def get_classified_file(self):
         folder = self.get_classified_folder()
-        name = self.filename_provider.get_classified_filename(polarization, forest_type)
+        name = 'classified.tif'
         return get_filepath(folder, name)
 
     def get_by_polarisation_from_folder(self, folder):

@@ -1,5 +1,6 @@
 import os
 from typing import List
+import numpy as np
 
 from forestdection.filepath import FilepathProvider, FilenameProvider, get_filepath
 from forestdection.service import IndicatorCalculation, ReferenceUtils, ForestClassification
@@ -33,7 +34,7 @@ class Main:
                 else:
                     timeseries = self.csv_read_writer.read_timeseries(timeseries_path)
 
-                timeseries.set_description(self.filename_provider.get_timeseries_name(polarization, forest_type))
+                timeseries.set_description(polarization, forest_type)
                 all_timeseries.append(timeseries)
 
         if plot:
@@ -49,7 +50,22 @@ class Main:
         return self._get_indicator_for_all('pearson', self.filepath_provider.get_pearson_file, self.indicator_calculation.get_pearson, build)
 
     def get_classified(self, build: bool = False) -> List[np.array]:
-        return self._get_classified_for_all(self.filepath_provider.get_classified_folder(), build)
+        rmsd = self.get_all_rmsd()
+        pearson = self.get_all_pearson()
+        classified_path = self.filepath_provider.get_classified_file()
+
+        if not os.path.isfile(classified_path) or build:
+            all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
+            mm_tif_info = TifInfo(all_mm_paths['VV'][0])
+
+            print('Calculating classification tif')
+            forest_class_raster = self.forest_classification.classify_forest(rmsd, pearson)
+            self.tif_reader_writer.write_tif(forest_class_raster, classified_path, mm_tif_info)
+        else:
+            print('Loading classified tif')
+            forest_class_raster = self.tif_reader_writer.read_tif(classified_path)
+
+        return forest_class_raster
 
     def _get_indicator_for_all(self, indicator_type: str, indicator_path_func, indicator_func, build: bool = False) -> Indicators:
         all_reference_timeseries = self.get_all_reference_timeseries()
@@ -74,46 +90,7 @@ class Main:
             indicators.push(forest_type, polarization, indicator_type, indicator)
         return indicators
 
-    def _get_classified_for_all(self, classified_path, build: bool = False):
-        all_reference_timeseries = self.get_all_reference_timeseries()
-        all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
-        mm_tif_info = TifInfo(all_mm_paths['VV'][0])
-
-        indicator_timeseries = []
-        for reference_timeseries in all_reference_timeseries:
-            polarization, forest_type = self.filename_provider.get_info_from_name(reference_timeseries.get_description())
-            rmsd_path = self.filepath_provider.get_rmsd_file(polarization, forest_type)
-            pearson_path = self.filepath_provider.get_pearson_file(polarization, forest_type)
-            #print(f'\nrmsd_path: {rmsd_path}\npearson_path: {pearson_path}')
-
-
-            if not os.path.isfile(classified_path) or build:
-                print('Classifiying tif')
-                #TODO: check why its not callable with forest_classification()
-                classified_array = ForestClassification.classify_forest(self, rmsd_path, pearson_path)
-                fn = os.path.join(classified_path, (os.path.basename(rmsd_path)).split('_', 1)[1])
-                self.tif_reader_writer.write_tif(classified_array, fn, mm_tif_info)
-
-            else:
-                # TODO: make this work
-                print('Loading tif - not yet coded ;)')
-                pass
-
-
-        return classified_array
-
-
-
-
-    def classify_raster(self):
-        rmsd = self.get_all_rmsd()
-        pearson = self.get_all_pearson()
-
-        forest_class_raster = self.forest_classification.classify_forest(rmsd, pearson)
-
 
 if __name__ == '__main__':
     m = Main()
-    #m.get_all_rmsd()
     m.get_classified(build=True)
-    pass
