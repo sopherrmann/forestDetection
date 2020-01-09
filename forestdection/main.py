@@ -74,7 +74,7 @@ class Main:
 
         indicators = Indicators()
         for reference_timeseries in all_reference_timeseries:
-            polarization, forest_type = reference_timeseries.polarization, reference_timeseries.forest_type
+            forest_type, polarization = reference_timeseries.polarization, reference_timeseries.forest_type
             indicator_path = indicator_path_func(polarization, forest_type)
             print(f'\nCurrent indicator path {indicator_path}')
 
@@ -89,6 +89,14 @@ class Main:
 
             indicators.push(forest_type, polarization, indicator_type, indicator)
         return indicators
+
+    def check_result(self, build: bool = False):
+        _ = self.get_classified(build)
+        copernicus_hlr_path = self.filepath_provider.get_copernicus_hlr_file()
+        classified_path = self.filepath_provider.get_classified_file()
+        classified_reprojected_path = self.filepath_provider.get_reprojected_classified_file()
+
+        self.tif_reader_writer.reproject_tif(classified_path, classified_reprojected_path, copernicus_hlr_path)
 
 
 if __name__ == '__main__':

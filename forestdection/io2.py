@@ -3,7 +3,7 @@ from typing import List, Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from osgeo import gdal
+from osgeo import gdal, gdalconst
 
 from forestdection.domain import Timeseries, RasterCube, TifInfo
 from forestdection.filepath import FilepathProvider
@@ -100,9 +100,35 @@ class TifReaderWriter:
 
         return out_dataset
 
+    def reproject_tif(self, src_filename: str, dst_filename: str, match_filename: str):
+        # Source
+        src = gdal.Open(src_filename, gdalconst.GA_ReadOnly)
+        src_proj = src.GetProjection()
+        src_geotrans = src.GetGeoTransform()
+
+        # We want a section of source that matches this:
+        match_ds = gdal.Open(match_filename, gdalconst.GA_ReadOnly)
+        match_proj = match_ds.GetProjection()
+        match_geotrans = match_ds.GetGeoTransform()
+        wide = match_ds.RasterXSize
+        high = match_ds.RasterYSize
+
+        # Output / destination
+        dst = gdal.GetDriverByName('GTiff').Create(dst_filename, wide, high, 1, gdalconst.GDT_Float32)
+        dst.SetGeoTransform(match_geotrans)
+        dst.SetProjection(match_proj)
+
+        # Do the work
+        gdal.ReprojectImage(src, dst, src_proj, match_proj, gdalconst.GRA_Bilinear)
+
+        del dst  # Flush
+
     def read_tif(self, input_path: str):
         ds = gdal.Open(input_path)
         return np.array(ds.GetRasterBand(1).ReadAsArray())
+
+    def crop_to_extend(self):
+        pass
 
 
 class Plotter:

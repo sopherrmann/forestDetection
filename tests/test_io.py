@@ -3,7 +3,7 @@ from osgeo import gdal
 
 from forestdection.domain import Timeseries, TifInfo, RasterCube
 from forestdection.filepath import FilepathProvider, get_filepath
-from forestdection.io import CsvReaderWriter, TifReaderWriter, RasterSegmenter
+from forestdection.io2 import CsvReaderWriter, TifReaderWriter, RasterSegmenter
 
 filepath_provider = FilepathProvider()
 test_folder = filepath_provider.get_test_folder()

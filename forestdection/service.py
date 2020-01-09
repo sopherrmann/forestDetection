@@ -109,6 +109,8 @@ class ForestClassification:
         rmsd_vh = rmsd.get_data_by_description(polarization='VH')
         rmsd_vv = rmsd.get_data_by_description(polarization='VV')
         pearson_vh = pearson.get_data_by_description(polarization='VH')
+        del rmsd
+        del pearson
         forest_mask = self._get_forest_mask(rmsd_vh, rmsd_vv, pearson_vh)
 
         # forest classification based on highest RMSD VH value

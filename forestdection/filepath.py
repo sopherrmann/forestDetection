@@ -54,8 +54,8 @@ class FilepathProvider:
     def get_shape_folder(self):
         return self._get_input_folder('reference_shape')
 
-    def get_sentinel_hlr_folder(self):
-        return self._get_input_folder('sentinel_hlr')
+    def get_copernicus_hlr_folder(self):
+        return self._get_input_folder(os.path.join('sentinel_hlr', 'FTY_2015_020m_eu_03035_d04_E40N20'))
 
     # tmp
     def get_cropped_mm_folder(self):
@@ -81,6 +81,11 @@ class FilepathProvider:
         return self._get_result_folder('classified')
 
     # complete filepaths
+    def get_copernicus_hlr_file(self):
+        folder = self.get_copernicus_hlr_folder()
+        name = 'FTY_2015_020m_eu_03035_d04_E40N20.tif'
+        return get_filepath(folder, name)
+
     def get_cropped_mm_file(self, input_filename, output_sufix):
         output_filename = self.filename_provider.append_sufix_to_tif(input_filename, output_sufix)
         return os.path.join(self.get_cropped_mm_folder(), output_filename)
@@ -103,6 +108,11 @@ class FilepathProvider:
     def get_classified_file(self):
         folder = self.get_classified_folder()
         name = 'classified.tif'
+        return get_filepath(folder, name)
+
+    def get_reprojected_classified_file(self):
+        folder = self.get_classified_folder()
+        name = 'classified_reprojected.tif'
         return get_filepath(folder, name)
 
     def get_by_polarisation_from_folder(self, folder):
