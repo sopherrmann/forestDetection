@@ -83,7 +83,7 @@ class FilepathProvider:
     # complete filepaths
     def get_copernicus_hlr_file(self):
         folder = self.get_copernicus_hlr_folder()
-        name = 'FTY_2015_020m_eu_03035_d04_E40N20.tif'
+        name = 'Copernicus_HLR_repro_clip.tif'
         return get_filepath(folder, name)
 
     def get_cropped_mm_file(self, input_filename, output_sufix):

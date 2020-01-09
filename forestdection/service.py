@@ -11,6 +11,7 @@ from forestdection.io2 import RasterSegmenter
 
 class ReferenceUtils:
     filepath_provider = FilepathProvider()
+    raster_reader = RasterReader()
 
     def crop_raster(self, shape_path: str, input_paths: List[str], output_sufix: str) -> List[str]:
         output_paths = []
@@ -25,8 +26,8 @@ class ReferenceUtils:
         timeseries = Timeseries()
         raster_paths.sort()
         for raster_path in raster_paths:
-            ds = gdal.Open(raster_path)
-            avg = np.average(np.array(ds.GetRasterBand(1).ReadAsArray()))
+            data = self.raster_reader.read(raster_path)
+            avg = np.nanmean(data)
 
             date_str = get_date_from_filename(get_filename_from_path(raster_path))
             timeseries.push(date_str, avg)
@@ -48,12 +49,12 @@ class IndicatorCalculation:
         print(f'Timeseries: {reference_timeseries.get_description()}')
         counter = 1
         cube = raster_segmenter.get_next_cube(actual_paths)
+
+        timeseries_array = np.array(reference_timeseries.sig0s)
         while cube:
             print(f'RMSD Segment Counter: {counter}')
-            timeseries_array = np.array(reference_timeseries.sig0s)
-            cube.data = np.square(cube.data - timeseries_array[None, None, :]) # per pixel
-
-            cube.data = np.sqrt(np.sum(cube.data, axis=2) / ts_size)  # combining pixel
+            cube.data = np.square(cube.data - timeseries_array[None, None, :])  # per pixel
+            cube.data = np.sqrt(np.nansum(cube.data, axis=2) / ts_size)  # combining pixel
 
             rmsd_cubes.append(cube)
             counter += 1
@@ -91,14 +92,14 @@ class IndicatorCalculation:
 
     def get_centered_std_cube(self, cube_data: np.array):
         size = cube_data.shape[2]
-        centered = cube_data - np.average(cube_data, axis=2)[:, :, None]
+        centered = cube_data - np.nanmean(cube_data, axis=2)[:, :, None]
         std = np.sqrt(np.sum(np.square(centered), axis=2) / (size - 1))
         return std, centered
 
     def get_centered_std_timeseries(self, data: List[float]) -> Tuple[float, np.array]:
         data = np.array(data)
-        centered = data - np.average(data)
-        std = np.sqrt(np.sum(np.square(centered)) / (data.shape[0] - 1))
+        centered = data - np.nanmean(data)
+        std = np.sqrt(np.nansum(np.square(centered)) / (data.shape[0] - 1))
         return std, centered
 
 
@@ -125,8 +126,7 @@ class ForestClassification:
 
     def _get_forest_mask(self, rmsd_vh: np.array, rmsd_vv: np.array, pearson_vh: np.array) -> np.array:
         # RMSD VH < 1.5 dB and RMSD VV < 2.0 dB and Pearson VH > 0.4 -> 1 otherwise 0
-        # TODO Why is multiplication with 1000 needed?
-        mask_rmsd_vh = np.any((rmsd_vh < 1500), axis=2)
-        mask_rmsd_vv = np.any(rmsd_vv < 2000, axis=2)
+        mask_rmsd_vh = np.any((rmsd_vh < 1.5), axis=2)
+        mask_rmsd_vv = np.any(rmsd_vv < 2.0, axis=2)
         mask_pearson_vh = np.any(pearson_vh > 0.4, axis=2)
         return (mask_rmsd_vh * mask_rmsd_vv * mask_pearson_vh).astype(int)

@@ -9,17 +9,41 @@ from forestdection.domain import Timeseries, RasterCube, TifInfo
 from forestdection.filepath import FilepathProvider
 
 
+class RasterReader:
+
+    def read(self, path: str):
+        ds = gdal.Open(path)
+        data = np.array(ds.GetRasterBand(1).ReadAsArray())
+        del ds
+        return self.default_decoder(data)
+
+    def default_decoder(self, data: np.array, factor: int = None, nodata=None):
+        if not factor:
+            factor = 100
+        if not nodata:
+            nodata = -9999
+
+        dataf = data.astype(float)
+        del data
+        dataf[dataf == nodata] = np.nan
+        return dataf / factor
+
+
 class RasterSegmenter:
     # TODO set from config
     # Do not increase if used with current setup! Max!
     col_size = 2000
     row_size = 2000
+    raster_reader = RasterReader()
 
     def __init__(self):
         self.col_off = 0
         self.row_off = 0
 
-    def get_next_cube(self, input_paths: List[str]) -> Optional[RasterCube]:
+    def get_next_cube(self, input_paths: List[str], decoder=None) -> Optional[RasterCube]:
+        if not decoder:
+            decoder = self.raster_reader.default_decoder
+
         cube = []
         for path in input_paths:
             ds: gdal.Dataset = gdal.Open(path)
@@ -41,7 +65,8 @@ class RasterSegmenter:
 
             # Get data
             c = np.array(ds.GetRasterBand(1).ReadAsArray(self.col_off, self.row_off, col_size, row_size))
-            cube.append(c)
+            del ds
+            cube.append(decoder(c))
 
         if not cube:
             return None
@@ -104,7 +129,6 @@ class TifReaderWriter:
         # Source
         src = gdal.Open(src_filename, gdalconst.GA_ReadOnly)
         src_proj = src.GetProjection()
-        src_geotrans = src.GetGeoTransform()
 
         # We want a section of source that matches this:
         match_ds = gdal.Open(match_filename, gdalconst.GA_ReadOnly)
@@ -126,9 +150,6 @@ class TifReaderWriter:
     def read_tif(self, input_path: str):
         ds = gdal.Open(input_path)
         return np.array(ds.GetRasterBand(1).ReadAsArray())
-
-    def crop_to_extend(self):
-        pass
 
 
 class Plotter:

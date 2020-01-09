@@ -14,7 +14,7 @@ class Timeseries:
 
     def push(self, date, sig0):
         self.dates.append(date)
-        self.sig0s.append(int(sig0))  # Sig0 are stored as signed sixteen bit integers
+        self.sig0s.append(float(sig0))  # Sig0 are stored as signed sixteen bit integers > if factor 100 is removed float
 
     def push_all(self, dates: List[str], sig0s: List[int]):
         self.dates += dates
