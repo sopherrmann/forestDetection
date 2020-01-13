@@ -126,7 +126,7 @@ class ForestClassification:
 
         # forest classification based on highest RMSD VH value
         # get index of highest RMSD VH value (0 / 1... first / second forest type)
-        forest_type_index_raster = np.argmax(rmsd_vh, axis=2)
+        forest_type_index_raster = np.argmin(rmsd_vh, axis=2)
         forest_type_index_raster += 1  # now all indexes are above 0
 
         # 0 ... no forest
