@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 
 from forestdection.filepath import FilepathProvider, FilenameProvider, get_filepath
-from forestdection.service import IndicatorCalculation, ReferenceUtils, ForestClassification
+from forestdection.service import IndicatorCalculation, ReferenceUtils, ForestClassification, AccuracyMeasure
 from forestdection.io2 import CsvReaderWriter, TifReaderWriter, Plotter
 from forestdection.domain import Timeseries, TifInfo, Indicators
 
@@ -14,6 +14,7 @@ class Main:
     filename_provider = FilenameProvider()
     indicator_calculation = IndicatorCalculation()
     forest_classification = ForestClassification()
+    cmatrix = AccuracyMeasure()
     csv_read_writer = CsvReaderWriter()
     tif_reader_writer = TifReaderWriter()
     reference_utils = ReferenceUtils()
@@ -97,6 +98,16 @@ class Main:
         classified_reprojected_path = self.filepath_provider.get_reprojected_classified_file()
 
         self.tif_reader_writer.reproject_tif(classified_path, classified_reprojected_path, copernicus_hlr_path)
+
+    def confusion_matrix(self):
+        classified_path = self.filepath_provider.get_classified_file()
+        copernicus_hlr_path = self.filepath_provider.get_copernicus_hlr_file()
+        classified_array = self.tif_reader_writer.read_tif(classified_path)
+        copernicus_array = self.tif_reader_writer.read_tif(copernicus_hlr_path)
+
+        print(f'Accuracy: {self.cmatrix.get_overall_accuracy(classified_array, copernicus_array)}')
+        print(f'Kappa: {self.cmatrix.get_kappa(classified_array, copernicus_array)}')
+        print(f'Confusion Matrix: {self.cmatrix.calculate_confusion_matrix(classified_array, copernicus_array)}')
 
 
 if __name__ == '__main__':

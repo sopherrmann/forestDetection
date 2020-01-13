@@ -4,5 +4,5 @@ dependencies:
   - gdal
   - numpy
   - matplotlib
-  - pandas
+  - scipy
   - scikit-learn

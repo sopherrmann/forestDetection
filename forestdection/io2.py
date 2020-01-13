@@ -167,7 +167,7 @@ class Plotter:
 
             # TODO ylim should be same for all plots
             plt.subplot(num_ts, 1, idx + 1)
-            plt.ylabel('Mean sig0')
+            plt.ylabel('Mean sig0 [dB]')
             plt.title(ts.get_description())
             plt.xticks([], [])
             plt.plot(x, ts.sig0s)

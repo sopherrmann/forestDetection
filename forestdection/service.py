@@ -2,11 +2,21 @@ import subprocess
 from typing import List, Tuple
 
 import numpy as np
-from osgeo import gdal
+from scipy.ndimage import generic_filter
+from sklearn.metrics import confusion_matrix, cohen_kappa_score, accuracy_score
 
 from forestdection.domain import Timeseries, Indicators
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
-from forestdection.io2 import RasterSegmenter
+from forestdection.io2 import RasterSegmenter, RasterReader
+
+
+class LinearDbUtils:
+
+    def db_to_linear(self, val):
+        return 10**(val/10)
+
+    def linear_to_db(self, val):
+        return 10 * np.log10(val)
 
 
 class ReferenceUtils:
@@ -112,7 +122,7 @@ class ForestClassification:
         pearson_vh = pearson.get_data_by_description(polarization='VH')
         del rmsd
         del pearson
-        forest_mask = self._get_forest_mask(rmsd_vh, rmsd_vv, pearson_vh)
+        forest_mask = self.get_forest_mask(rmsd_vh, rmsd_vv, pearson_vh)
 
         # forest classification based on highest RMSD VH value
         # get index of highest RMSD VH value (0 / 1... first / second forest type)
@@ -124,9 +134,37 @@ class ForestClassification:
         # 2 ... second forest type
         return forest_type_index_raster * forest_mask
 
-    def _get_forest_mask(self, rmsd_vh: np.array, rmsd_vv: np.array, pearson_vh: np.array) -> np.array:
+    def get_forest_mask(self, rmsd_vh: np.array, rmsd_vv: np.array, pearson_vh: np.array) -> np.array:
         # RMSD VH < 1.5 dB and RMSD VV < 2.0 dB and Pearson VH > 0.4 -> 1 otherwise 0
         mask_rmsd_vh = np.any((rmsd_vh < 1.5), axis=2)
         mask_rmsd_vv = np.any(rmsd_vv < 2.0, axis=2)
         mask_pearson_vh = np.any(pearson_vh > 0.4, axis=2)
         return (mask_rmsd_vh * mask_rmsd_vv * mask_pearson_vh).astype(int)
+    
+
+class AccuracyMeasure:
+
+    def get_kappa(self, classified: np.array, hrl: np.array):
+        return cohen_kappa_score(hrl.flatten(), classified.flatten())
+
+    def get_overall_accuracy(self, classified: np.array, hrl: np.array):
+        return accuracy_score(hrl.flatten(), classified.flatten())
+
+    def calculate_confusion_matrix(self, classified: np.array, hrl: np.array) -> np.array:
+        return confusion_matrix(hrl.flatten(), classified.flatten(), normalize=True)
+
+
+class ComparisonUtils:
+
+    raster_reader = RasterReader()
+
+    def _check_mmu(self, values):
+        val_sum = np.nansum(values)
+        return int(val_sum >= 5)
+
+    def apply_mmu(self, data: np.array):
+        footprint = np.ones((3, 3))
+        return generic_filter(data, self._check_mmu, footprint=footprint)
+
+    def crop_raster_with_raster(self, to_crop_path: str, raster_path: str):
+        pass
