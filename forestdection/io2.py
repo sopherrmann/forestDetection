@@ -9,13 +9,7 @@ from forestdection.domain import Timeseries, RasterCube, TifInfo
 from forestdection.filepath import FilepathProvider
 
 
-class RasterReader:
-
-    def read(self, path: str):
-        ds = gdal.Open(path)
-        data = np.array(ds.GetRasterBand(1).ReadAsArray())
-        del ds
-        return self.default_decoder(data)
+class DeEnCoder:
 
     def default_decoder(self, data: np.array, factor: int = None, nodata=None):
         if not factor:
@@ -28,22 +22,30 @@ class RasterReader:
         dataf[dataf == nodata] = np.nan
         return dataf / factor
 
+    def default_encoder(self, data: np.array, factor: int = None, nodata=None):
+        if not factor:
+            factor = 100
+        if not nodata:
+            nodata = -9999
+
+        dataf = data.astype(float)
+        del data
+        dataf[np.isnan(dataf)] = nodata
+        return dataf * factor
+
 
 class RasterSegmenter:
     # TODO set from config
     # Do not increase if used with current setup! Max!
     col_size = 2000
     row_size = 2000
-    raster_reader = RasterReader()
+    de_en_coder = DeEnCoder()
 
     def __init__(self):
         self.col_off = 0
         self.row_off = 0
 
-    def get_next_cube(self, input_paths: List[str], decoder=None) -> Optional[RasterCube]:
-        if not decoder:
-            decoder = self.raster_reader.default_decoder
-
+    def get_next_cube(self, input_paths: List[str], decoder_factor: float = None, decoder_nodata=None) -> Optional[RasterCube]:
         cube = []
         for path in input_paths:
             ds: gdal.Dataset = gdal.Open(path)
@@ -66,7 +68,7 @@ class RasterSegmenter:
             # Get data
             c = np.array(ds.GetRasterBand(1).ReadAsArray(self.col_off, self.row_off, col_size, row_size))
             del ds
-            cube.append(decoder(c))
+            cube.append(self.de_en_coder.default_decoder(c, decoder_factor, decoder_nodata))
 
         if not cube:
             return None
@@ -101,14 +103,17 @@ class RasterSegmenter:
 class TifReaderWriter:
 
     filepath_provider = FilepathProvider()
+    de_en_coder = DeEnCoder()
 
-    def write_rmsd_tif(self, rmsd: np.array, output_path: str, source: TifInfo):
-        return self.write_tif(rmsd, output_path, source)
+    def write_rmsd_tif(self, rmsd: np.array, output_path: str, source: TifInfo, encoder_factor: float = None, encoder_nodata=None):
+        return self.write_tif(rmsd, output_path, source, encoder_factor, encoder_nodata)
 
-    def write_pearson_tif(self, pearson: np.array, output_path: str, source: TifInfo):
-        self.write_tif(pearson, output_path, source)
+    def write_pearson_tif(self, pearson: np.array, output_path: str, source: TifInfo, encoder_factor: float = None, encoder_nodata=None):
+        self.write_tif(pearson, output_path, source, encoder_factor, encoder_nodata)
 
-    def write_tif(self, data: np.array, output_path: str, tif_info: TifInfo):
+    def write_tif(self, data: np.array, output_path: str, tif_info: TifInfo, encoder_factor: float = None, encoder_nodata=None):
+        data = self.de_en_coder.default_encoder(data, encoder_factor, encoder_nodata)
+
         # Create Driver
         driver = gdal.GetDriverByName('GTiff')
         # TODO check datatype (origin sig0 mm sixteen bit signed integer > is float 32 enough or do we need float64?)
@@ -147,9 +152,10 @@ class TifReaderWriter:
 
         del dst  # Flush
 
-    def read_tif(self, input_path: str):
+    def read_tif(self, input_path: str, decoder_factor: float = None, decoder_nodata=None):
         ds = gdal.Open(input_path)
-        return np.array(ds.GetRasterBand(1).ReadAsArray())
+        data = np.array(ds.GetRasterBand(1).ReadAsArray())
+        return self.de_en_coder.default_decoder(data, decoder_factor, decoder_nodata)
 
 
 class Plotter:

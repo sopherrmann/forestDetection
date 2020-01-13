@@ -61,10 +61,10 @@ class Main:
 
             print('Calculating classification tif')
             forest_class_raster = self.forest_classification.classify_forest(rmsd, pearson)
-            self.tif_reader_writer.write_tif(forest_class_raster, classified_path, mm_tif_info)
+            self.tif_reader_writer.write_tif(forest_class_raster, classified_path, mm_tif_info, encoder_factor=1, encoder_nodata=-9999)
         else:
             print('Loading classified tif')
-            forest_class_raster = self.tif_reader_writer.read_tif(classified_path)
+            forest_class_raster = self.tif_reader_writer.read_tif(classified_path, decoder_factor=1, decoder_nodata=-9999)
 
         return forest_class_raster
 
@@ -85,28 +85,20 @@ class Main:
             if not os.path.isfile(indicator_path) or build:
                 print('Calculating tif')
                 indicator = indicator_func(reference_timeseries, all_mm_paths[polarization])
-                self.tif_reader_writer.write_tif(indicator, indicator_path, mm_tif_info)
+                self.tif_reader_writer.write_tif(indicator, indicator_path, mm_tif_info, encoder_factor=1, encoder_nodata=-9999)
 
             else:
                 print('Loading tif')
-                indicator = self.tif_reader_writer.read_tif(indicator_path)
+                indicator = self.tif_reader_writer.read_tif(indicator_path, decoder_factor=1, decoder_nodata=-9999)
 
             indicators.push(forest_type, polarization, indicator_type, indicator)
         return indicators
 
-    def check_result(self, build: bool = False):
-        _ = self.get_classified(build)
-        copernicus_hlr_path = self.filepath_provider.get_copernicus_hlr_file()
-        classified_path = self.filepath_provider.get_classified_file()
-        classified_reprojected_path = self.filepath_provider.get_reprojected_classified_file()
-
-        self.tif_reader_writer.reproject_tif(classified_path, classified_reprojected_path, copernicus_hlr_path)
-
     def confusion_matrix(self):
         classified_path = self.filepath_provider.get_classified_file()
         copernicus_hlr_path = self.filepath_provider.get_copernicus_hlr_file()
-        classified_array = self.tif_reader_writer.read_tif(classified_path)
-        copernicus_array = self.tif_reader_writer.read_tif(copernicus_hlr_path)
+        classified_array = self.tif_reader_writer.read_tif(classified_path, decoder_factor=1, decoder_nodata=-9999)
+        copernicus_array = self.tif_reader_writer.read_tif(copernicus_hlr_path, decoder_factor=1)
 
         print(f'Accuracy: {self.cmatrix.get_overall_accuracy(classified_array, copernicus_array)}')
         print(f'Kappa: {self.cmatrix.get_kappa(classified_array, copernicus_array)}')

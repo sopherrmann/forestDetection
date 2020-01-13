@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix, cohen_kappa_score, accuracy_score
 
 from forestdection.domain import Timeseries, Indicators
 from forestdection.filepath import FilepathProvider, get_filename_from_path, get_date_from_filename
-from forestdection.io2 import RasterSegmenter, RasterReader
+from forestdection.io2 import RasterSegmenter, TifReaderWriter
 
 
 class LinearDbUtils:
@@ -21,7 +21,7 @@ class LinearDbUtils:
 
 class ReferenceUtils:
     filepath_provider = FilepathProvider()
-    raster_reader = RasterReader()
+    tif_reader = TifReaderWriter()
 
     def crop_raster(self, shape_path: str, input_paths: List[str], output_sufix: str) -> List[str]:
         output_paths = []
@@ -36,7 +36,7 @@ class ReferenceUtils:
         timeseries = Timeseries()
         raster_paths.sort()
         for raster_path in raster_paths:
-            data = self.raster_reader.read(raster_path)
+            data = self.tif_reader.read_tif(raster_path)
             avg = np.nanmean(data)
 
             date_str = get_date_from_filename(get_filename_from_path(raster_path))
@@ -64,7 +64,9 @@ class IndicatorCalculation:
         while cube:
             print(f'RMSD Segment Counter: {counter}')
             cube.data = np.square(cube.data - timeseries_array[None, None, :])  # per pixel
-            cube.data = np.sqrt(np.nansum(cube.data, axis=2) / ts_size)  # combining pixel
+            cube.data = np.nansum(cube.data, axis=2)  # sums all nan values to 0
+            cube.data[cube.data == 0] = np.nan  # set nan sums to nan again
+            cube.data = np.sqrt(cube.data / ts_size)  # combining pixel
 
             rmsd_cubes.append(cube)
             counter += 1
@@ -95,7 +97,7 @@ class IndicatorCalculation:
 
     def get_pearson_by_cube(self, cube_data: np.array, reference_std: float, reference_centered: np.array):
         cube_std, cube_centered = self.get_centered_std_cube(cube_data)
-        numerator = np.sum(cube_centered * reference_centered, axis=2) / (cube_data.shape[2] - 1)
+        numerator = np.nansum(cube_centered * reference_centered, axis=2) / (cube_data.shape[2] - 1)
         denominator = cube_std * reference_std
         cube_data = numerator / denominator
         return cube_data
@@ -103,7 +105,7 @@ class IndicatorCalculation:
     def get_centered_std_cube(self, cube_data: np.array):
         size = cube_data.shape[2]
         centered = cube_data - np.nanmean(cube_data, axis=2)[:, :, None]
-        std = np.sqrt(np.sum(np.square(centered), axis=2) / (size - 1))
+        std = np.sqrt(np.nansum(np.square(centered), axis=2) / (size - 1))
         return std, centered
 
     def get_centered_std_timeseries(self, data: List[float]) -> Tuple[float, np.array]:
@@ -155,8 +157,6 @@ class AccuracyMeasure:
 
 
 class ComparisonUtils:
-
-    raster_reader = RasterReader()
 
     def _check_mmu(self, values):
         val_sum = np.nansum(values)
