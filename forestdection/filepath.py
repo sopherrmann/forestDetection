@@ -121,9 +121,9 @@ class FilepathProvider:
         vh = []
         for f in all_files:
             part = os.path.basename(f).split('_')[3]
-            if part.endswith('VV-'):
+            if 'VV' in part:
                 vv.append(f)
-            elif part.split('VH-'):
+            elif 'VH' in part:
                 vh.append(f)
         return {'VV': vv, 'VH': vh}
 

@@ -68,10 +68,13 @@ class Main:
 
         return forest_class_raster
 
+    def _get_tif_info(self, something) -> TifInfo:
+        return TifInfo(something)
+
     def _get_indicator_for_all(self, indicator_type: str, indicator_path_func, indicator_func, build: bool = False) -> Indicators:
         all_reference_timeseries = self.get_all_reference_timeseries()
         all_mm_paths = self.filepath_provider.get_input_mm_files_by_polarisation()
-        mm_tif_info = TifInfo(all_mm_paths['VV'][0])
+        mm_tif_info = self._get_tif_info(all_mm_paths['VV'][0])
 
         indicators = Indicators()
         for reference_timeseries in all_reference_timeseries:
